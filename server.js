@@ -140,8 +140,15 @@ app.post("/webhook", async (req, res) => {
     
     switch (userStatesMap.get(user)?.messageState) {                
       case "main_menu":
-        
-       if(optionReplyId === "menu_check_subscription") {
+         if (buttonReplyId === "downloads"){
+          
+            await markAsRead(businessPhoneNumberId, messageId);
+            await sendPurchaseFlow(user, "resources");
+
+            messageState = "main_menu";
+          setMessageState(user, messageState);
+          
+        }else if(optionReplyId === "menu_check_subscription") {
                 await markAsRead(businessPhoneNumberId, messageId);
                     await checkSubscriptionFunction(businessPhoneNumberId, user, messageId);
 
@@ -232,7 +239,7 @@ app.post("/webhook", async (req, res) => {
                     await sendPurchaseFlow(user, "resources");
 
                     //messageState = "timed_test";
-                    messageState = "resources"; 
+                    messageState = "main_menu"; 
                     
                   setMessageState(user, messageState);
               } else if (optionReplyId === "menu_track_performance") {
