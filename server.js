@@ -158,6 +158,7 @@ app.post("/webhook", async (req, res) => {
 
         }else if (message?.type === "interactive" && message?.interactive?.type === "nfm_reply") {
           const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
+         console.log("PURCHASE RESPONSE JSON:",responseJson);
           const user = message.from; // Ensure user phone is defined from the message sender
           const messageId = message.id;
 
