@@ -100,7 +100,7 @@ export async function managePracticeQuestionsFlow(req, res) {
           screen: "INSTRUCTIONS_SCREEN",
           data: {
             instructions:
-              "Practise up to 5 attempts of 25 road code questions at your own pace. " +
+              "Practice up to 5 attempts of 25 specialized questions at your own pace. This is best for mastering a specific category of the Highway Code Questions that is Diagrams, Road Signs or Theory." +
               "Choose a category, answer each question, and learn from the explanation after every answer.",
             categories: CATEGORIES.map(({ id, title }) => ({
               id,
@@ -135,10 +135,7 @@ export async function managePracticeQuestionsFlow(req, res) {
 
       const questions = await fetchAttemptQuestions(selectedCategory.dbCategory,  TOTAL_QUESTIONS);
 
-      console.log("[Practice Flow] Decrypted body:", {
-        userPhone: decryptedBody?.userPhone,
-        keys: Object.keys(decryptedBody ?? {}),
-      });
+     
 
       
       session = {
@@ -235,11 +232,7 @@ export async function managePracticeQuestionsFlow(req, res) {
           selected.toUpperCase() === correctAnswer.toUpperCase();
 
         if (!isCorrect) {
-  console.log("[Practice Flow] Failed question:", {
-    sessionUserPhone: session.userPhone,
-    questionId: question.id,
-    session,
-  });
+
 
   await addFailedQuestionId(
     session.userPhone,
@@ -247,11 +240,7 @@ export async function managePracticeQuestionsFlow(req, res) {
   );
 }
           
-        console.log("[FailedQuestions] Explanation check:", {
-        questionId: question.id,
-        explanation: question.explanation,
-        explanationType: typeof question.explanation,
-        });
+      
 
 
         session.pendingAnswer = {
@@ -467,9 +456,9 @@ async function recordAttemptResult(session) {
       status: "complete",
       no_correct_answers: correct,
       no_questions_taken: TOTAL_QUESTIONS,
-      road_sign_qtn_mark: session.category === "exercise_2" ? correct : null,
-      traffic_intersection_qtn_mark: session.category === "exercise_1" ? correct : null,
-      theory_qtn_mark: session.category === "exercise_3" ? correct : null,
+      road_sign_qtn_mark: session.category === "exercise_2" ? correct : 0,
+      traffic_intersection_qtn_mark: session.category === "exercise_1" ? correct : 0,
+      theory_qtn_mark: session.category === "exercise_3" ? correct : 0,
       time_taken: durationMs,
     });
   } catch (error) {
