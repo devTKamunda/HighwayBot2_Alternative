@@ -11,14 +11,6 @@ import { setPurchaseFlowVariable } from "../userStateManager.js";
 dotenv.config();
 
 export async function sendPurchaseFlow(user, requestedMode) {
-  console.log("\n[PurchaseFlow] ===== START =====");
-
-  console.log("[PurchaseFlow] Input:", {
-    userProvided: Boolean(user),
-    recipientLength: user ? String(user).length : 0,
-    requestedMode,
-  });
-
   let mode = requestedMode;
   setPurchaseFlowVariable(user, "mode", mode);
 
@@ -52,21 +44,12 @@ export async function sendPurchaseFlow(user, requestedMode) {
     !flowId && "PURCHASE_FLOW_ID",
   ].filter(Boolean);
 
-  console.log("[PurchaseFlow] Configuration:", {
-    hasGraphApiToken: Boolean(token),
-    graphApiTokenLength: token?.length ?? 0,
-    hasPhoneNumberId: Boolean(phoneNumberId),
-    phoneNumberId,
-    hasPurchaseFlowId: Boolean(flowId),
-    flowId,
-    missingVariables: missing,
-  });
+
 
   if (missing.length) {
     const error = `Purchase Flow configuration is incomplete: ${missing.join(", ")}`;
 
     console.error("[PurchaseFlow] Configuration error:", error);
-    console.log("[PurchaseFlow] ===== END: CONFIGURATION ERROR =====\n");
 
     return {
       success: false,
@@ -83,26 +66,15 @@ export async function sendPurchaseFlow(user, requestedMode) {
 
   const headerText = isSubscription
     ? "Choose a Subscription"
-    : "Study Resources";
+    : "Pdf Study Resources";
 
   const bodyText = isSubscription
-    ? "Choose your access package, enter your EcoCash number, and review the purchase details. \n\nType *Menu* for the Assistant's Main Menu."
-    : "Choose your study resources or bundle, enter your EcoCash number, and review the purchase details. \n\nType *Menu* for the Assistant's Main Menu.";
+    ? "Choose your access package, use EcoCash to pay and instantly have access to all features and start your driving journey. \n\nType *Menu* for the Assistant's Main Menu."
+    : "Choose your study resource, use EcoCash to pay and instantly receive your selected pdf study resource. \n\nType *Menu* for the Assistant's Main Menu.";
 
   // Normalize the recipient for logging only.
   const recipient = String(user ?? "");
 
-  console.log("[PurchaseFlow] Preparing request:", {
-    mode,
-    headerText,
-    bodyText,
-    recipientLength: recipient.length,
-    recipientLastFour: recipient.slice(-4),
-    endpoint: `https://graph.facebook.com/v26.0/${phoneNumberId}/messages`,
-    flowMessageVersion: "3",
-    flowAction: "data_exchange",
-    flowTokenPrefix: "purchase:",
-  });
 
   // --------------------------------------------------
   // 4. Send Flow through the WhatsApp Cloud API
@@ -141,8 +113,6 @@ export async function sendPurchaseFlow(user, requestedMode) {
       },
     };
 
-    console.log("[PurchaseFlow] Sending POST request to Meta...");
-
     const response = await axios({
       method: "POST",
       url: `https://graph.facebook.com/v26.0/${phoneNumberId}/messages`,
@@ -153,18 +123,6 @@ export async function sendPurchaseFlow(user, requestedMode) {
       data: requestBody,
       timeout: 30000,
     });
-
-    console.log("[PurchaseFlow] Meta API request accepted:", {
-      status: response.status,
-      statusText: response.statusText,
-      messagingProduct: response.data?.messaging_product,
-      messageId: response.data?.messages?.[0]?.id,
-      recipientWaId: response.data?.contacts?.[0]?.wa_id
-        ? `********${String(response.data.contacts[0].wa_id).slice(-4)}`
-        : undefined,
-    });
-
-    console.log("[PurchaseFlow] ===== END: SUCCESS =====\n");
 
     return {
       success: true,
