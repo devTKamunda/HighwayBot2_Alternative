@@ -20,7 +20,7 @@ const RESOURCES = [
     type: "resource",
     envUSD: "PRICE_USD_HIGHWAY_CODE",
     envZWG: "PRICE_ZWG_HIGHWAY_CODE",
-    detail: "Downloadable Highway Code study document",
+    detail: "Pdf Highway Code study document",
   },
   {
     id: "road_signs",
@@ -28,7 +28,7 @@ const RESOURCES = [
     type: "resource",
     envUSD: "PRICE_USD_ROAD_SIGNS",
     envZWG: "PRICE_ZWG_ROAD_SIGNS",
-    detail: "Downloadable Road Signs study document",
+    detail: "Pdf Road Signs study document",
   },
   {
     id: "questions_bank",
@@ -36,7 +36,7 @@ const RESOURCES = [
     type: "resource",
     envUSD: "PRICE_USD_QUESTIONS_BANK",
     envZWG: "PRICE_ZWG_QUESTIONS_BANK",
-    detail: "Questions Bank study resource",
+    detail: "Pdf Questions Bank (500+ official questions and answers) study resource",
   },
 ];
 
@@ -60,7 +60,7 @@ const SUBSCRIPTIONS = [
  {
     id: "basic_pack",
     name: "Basic Pack",
-    type: "bundle",
+    type: "subscription",
     envUSD: "PRICE_USD_BASIC_PACK",
     envZWG: "PRICE_ZWG_BASIC_PACK",
     detail: "1 month access + Highway Code + Road Signs",
@@ -68,18 +68,18 @@ const SUBSCRIPTIONS = [
   {
     id: "exam_booster",
     name: "Exam Booster",
-    type: "bundle",
+    type: "subscription",
     envUSD: "PRICE_USD_EXAM_BOOSTER",
     envZWG: "PRICE_ZWG_EXAM_BOOSTER",
-    detail: "Basic Pack + Questions Bank + 1 month access",
+    detail: "1 month access + Highway Code + Road Signs + Ultimate Questions Bank (500+ Official Questions and Answers)",
   },
   {
     id: "self_reliance",
     name: "Self Reliance Package",
-    type: "bundle",
+    type: "subscription",
     envUSD: "PRICE_USD_SELF_RELIANCE",
     envZWG: "PRICE_ZWG_SELF_RELIANCE",
-    detail: "Exam Booster + 2 months access",
+    detail: "*2 months access* + Highway Code + Road Signs + Ultimate Questions Bank (500+ Official Questions and Answers)",
   },
 ];
 
@@ -126,23 +126,6 @@ function logPurchaseState(user, label) {
     console.log(`[PurchaseFlow] ${label}: no user state found`);
     return;
   }
-
-  console.log(`[PurchaseFlow] ${label}:`, {
-    messageState: state.messageState,
-    purchaseFlow: state.purchaseFlow
-      ? {
-          ...state.purchaseFlow,
-          payment_phone: maskPhone(
-            state.purchaseFlow.payment_phone
-          ),
-        }
-      : null,
-    paymentOption: state.paymentOption,
-    paymentNumber: maskPhone(state.paymentNumber),
-    paymentAmount: state.paymentAmount,
-    paymentCurrency: state.paymentCurrency,
-    subscriptionPackage: state.subscriptionPackage,
-  });
 }
 
 // --------------------------------------------------
@@ -252,7 +235,7 @@ function buildProductOptions(mode) {
 
       const optionItem = {
         id: `${product.id}__${currency}`,
-        title: `${product.name} (${product.detail}) — ${money(currency, price)}`,
+        title: `${product.detail} — ${money(currency, price)}`,
       };
 
       if (currency === "USD") {
@@ -290,12 +273,6 @@ function buildProductOptions(mode) {
       `No prices are configured in .env for purchase mode "${mode}".`
     );
   }
-
-  console.log("[PurchaseFlow] Product options generated with headings:", {
-    mode,
-    count: options.length,
-    options,
-  });
 
   return options;
 }
@@ -411,12 +388,6 @@ function saveProductToState(userState, productData) {
     userState.subscriptionPackage = productData.product_id;
   }
 
-  console.log("[PurchaseFlow] Product saved to user state:", {
-    ...userState.purchaseFlow,
-    payment_phone: maskPhone(
-      userState.purchaseFlow.payment_phone
-    ),
-  });
 }
 
 function getSavedOrSubmittedChoice(data, userState) {
@@ -435,10 +406,7 @@ function getSavedOrSubmittedChoice(data, userState) {
     typeof savedChoice === "string" &&
     savedChoice.trim()
   ) {
-    console.log(
-      "[PurchaseFlow] Reusing saved product choice:",
-      savedChoice
-    );
+   
 
     return savedChoice;
   }
@@ -581,13 +549,6 @@ function sendEncryptedResponse(
       initialVectorBuffer
     );
 
-    console.log("[PurchaseFlow] Encryption successful:", {
-      responseType: typeof encryptedResponse,
-      responseLength: encryptedResponse.length,
-      isBase64String:
-        typeof encryptedResponse === "string" &&
-        /^[A-Za-z0-9+/]+=*$/.test(encryptedResponse),
-    });
   } catch (error) {
     console.error(
       "[PurchaseFlow] RESPONSE ENCRYPTION FAILED:",
@@ -602,23 +563,7 @@ function sendEncryptedResponse(
 
   res.setHeader("Content-Type", "text/plain");
 
-  console.log("[PurchaseFlow] Sending HTTP response:", {
-    status: 200,
-    contentType: res.getHeader("Content-Type"),
-    encryptedLength: encryptedResponse.length,
-  });
-
   const result = res.status(200).send(encryptedResponse);
-
-  console.log("[PurchaseFlow] HTTP response sent:", {
-    statusCode: res.statusCode,
-    headersSent: res.headersSent,
-    writableEnded: res.writableEnded,
-  });
-
-  console.log(
-    "[PurchaseFlow] =====================================\n"
-  );
 
   return result;
 }
@@ -650,8 +595,6 @@ export async function managePurchaseFlow(req, res) {
 
     // Meta health check.
     if (action === "ping") {
-      console.log("[PurchaseFlow] Responding to ping.");
-
       return sendEncryptedResponse(
         res,
         { data: { status: "active" } },
@@ -693,11 +636,6 @@ export async function managePurchaseFlow(req, res) {
         status: "selecting_product",
       };
 
-      console.log("[PurchaseFlow] INIT state initialized:", {
-        mode,
-        productCount: products.length,
-      });
-
       logPurchaseState(user, "State after INIT");
 
       return sendEncryptedResponse(
@@ -729,14 +667,6 @@ export async function managePurchaseFlow(req, res) {
         userState
       );
 
-      console.log(
-        "[PurchaseFlow] Processing product selection:",
-        {
-          choiceId,
-          mode,
-        }
-      );
-
       const productData = buildProductData(
         mode,
         choiceId
@@ -749,11 +679,6 @@ export async function managePurchaseFlow(req, res) {
         screen: "ENTER_PHONE",
         data: productData,
       };
-
-      console.log(
-        "[PurchaseFlow] ENTER_PHONE response data:",
-        responsePayload.data
-      );
 
       logPurchaseState(
         user,
@@ -781,15 +706,6 @@ export async function managePurchaseFlow(req, res) {
         userState
       );
 
-      console.log(
-        "[PurchaseFlow] Processing phone submission:",
-        {
-          choiceId,
-          paymentPhoneProvided: Boolean(data?.payment_phone),
-          paymentPhone: maskPhone(data?.payment_phone),
-        }
-      );
-
       // Resolve the product and price from trusted server data.
       const productData = buildProductData(
         mode,
@@ -803,7 +719,6 @@ export async function managePurchaseFlow(req, res) {
       );
 
       saveProductToState(userState, productData);
-
       userState.purchaseFlow = {
         ...userState.purchaseFlow,
         ...productData,
@@ -829,8 +744,8 @@ export async function managePurchaseFlow(req, res) {
 
       const paymentDisclosureText =
         productData.product_type === "subscription"
-          ? `You are about to subscribe to ${productData.formatted_price} ${productData.product_name}. By selecting Yes & Continue, you agree to the Zim Provisional Driver's License WhatsApp Assistant Terms and Conditions.`
-          : `You are about to purchase ${productData.formatted_price} ${productData.product_name}. By selecting Yes & Continue, you agree to the Zim Provisional Driver's License WhatsApp Assistant Terms and Conditions.`;
+          ? `You are about to subscribe to ${productData.formatted_price} ${productData.product_name}. By selecting Yes & Continue, you agree to the Zim Provisional Driver's License WhatsApp Assistant Terms and Conditions. \n\n*NOTE:* Your selected Subscription is activated and attached resources delivered instantly upon payment.`
+          : `You are about to purchase ${productData.formatted_price} ${productData.product_name}. By selecting Yes & Continue, you agree to the Zim Provisional Driver's License WhatsApp Assistant Terms and Conditions. \n\n*NOTE:* Your selected study resource is delivered instantly upon payment.`;
 
       const responsePayload = {
         screen: "REVIEW_PURCHASE",
@@ -842,14 +757,7 @@ export async function managePurchaseFlow(req, res) {
         },
       };
 
-      console.log(
-        "[PurchaseFlow] REVIEW_PURCHASE response data:",
-        {
-          ...responsePayload.data,
-          payment_phone: maskPhone(paymentPhone),
-        }
-      );
-
+    
       logPurchaseState(
         user,
         "State after REVIEW_PURCHASE"
