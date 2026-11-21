@@ -49,6 +49,7 @@ function keepAppAlive() {
 
 keepAppAlive();
 
+
 //await refreshFileMediaIds();
 
 
@@ -116,8 +117,6 @@ app.post("/webhook", async (req, res) => {
   const optionReplyId = message?.interactive?.list_reply?.id;
   const messageId = message?.id;
 
-    console.log("businessPhoneNumberId:", businessPhoneNumberId);
-    console.log("message:", message);
   initializeUserState(user);
   // Access a specific user's state
   const userState = userStatesMap.get(user);
@@ -140,7 +139,8 @@ app.post("/webhook", async (req, res) => {
     
     switch (userStatesMap.get(user)?.messageState) {                
       case "main_menu":
-         if (buttonReplyId === "downloads"){
+        
+       if (buttonReplyId === "downloads"){
           
             await markAsRead(businessPhoneNumberId, messageId);
             await sendPurchaseFlow(user, "resources");
@@ -163,16 +163,29 @@ app.post("/webhook", async (req, res) => {
                     
                   setMessageState(user, messageState);
 
-        }else if (message?.type === "interactive" && message?.interactive?.type === "nfm_reply") {
+        }else if(optionReplyId === "menu_pdf_resources") {
+                await markAsRead(businessPhoneNumberId, messageId);
+                    await sendPurchaseFlow(user, "resources");
+
+                    messageState = "main_menu"; 
+                    
+                  setMessageState(user, messageState);
+          
+          }else if (message?.type === "interactive" && message?.interactive?.type === "nfm_reply") {
           const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
-         console.log("PURCHASE RESPONSE JSON:",responseJson);
           const user = message.from; // Ensure user phone is defined from the message sender
           const messageId = message.id;
 
           // Handle purchase confirmation flow
           if (responseJson.user_action === "CONFIRM_PURCHASE") {
             await markAsRead(businessPhoneNumberId, messageId);
-            
+            await sendMessageFunction(
+              businessPhoneNumberId,
+              user,
+              messageId,
+              "Thank you for confirming your purchase. Watch your phone for an EcoCash prompt to complete your payment."
+            );
+                        
             // Trigger Paynow mobile payment
             initiatePayment(businessPhoneNumberId, user, messageId)
               .then(() => console.log("[Webhook] Payment initiated successfully"))
@@ -212,11 +225,10 @@ app.post("/webhook", async (req, res) => {
               messageState = "main_menu"; 
               setMessageState(user, messageState);
             
-              } else if (optionReplyId === "menu_specialised_tests") {
+              } else if (optionReplyId === "menu_specialized_tests") {
                 await markAsRead(businessPhoneNumberId, messageId);
                   await sendPracticeTestFlow(user);
 
-                  //messageState = "timed_test";
                   messageState = "main_menu"; 
                 setMessageState(user, messageState);
                 
@@ -224,23 +236,13 @@ app.post("/webhook", async (req, res) => {
                 await markAsRead(businessPhoneNumberId, messageId);
                     await sendFailedQuestionsFlow(user);
 
-                    //messageState = "timed_test";
                     messageState = "main_menu"; 
                   setMessageState(user, messageState);
               } else if(optionReplyId === "menu_road_rules_course") {
                 await markAsRead(businessPhoneNumberId, messageId);
                     await sendHighwayCodeCourseFlow(user);
 
-                    //messageState = "timed_test";
                     messageState = "main_menu"; 
-                  setMessageState(user, messageState);
-              } else if(optionReplyId === "menu_pdf_resources") {
-                await markAsRead(businessPhoneNumberId, messageId);
-                    await sendPurchaseFlow(user, "resources");
-
-                    //messageState = "timed_test";
-                    messageState = "main_menu"; 
-                    
                   setMessageState(user, messageState);
               } else if (optionReplyId === "menu_track_performance") {
                 await markAsRead(businessPhoneNumberId, messageId);
@@ -268,27 +270,10 @@ app.post("/webhook", async (req, res) => {
         }
         
         break;    
-        
-        case "resources":
-        if (buttonReplyId === "downloads"){
-          
-            await markAsRead(businessPhoneNumberId, messageId);
-            await sendPurchaseFlow(user, "resources");
-
-            messageState = "resources";
-          setMessageState(user, messageState);
-          
-        }else {
-          await markAsRead(businessPhoneNumberId, messageId);
-          await sendMainMenuList(businessPhoneNumberId, user);
-          messageState = "main_menu";
-          setMessageState(user, messageState);
-        }
-        break;
     }
   }  
-  res.sendStatus(200);
   }
+  res.sendStatus(200);
 });
 
 
