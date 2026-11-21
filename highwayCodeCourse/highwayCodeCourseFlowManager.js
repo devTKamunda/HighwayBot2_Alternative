@@ -164,11 +164,6 @@ async function loadImage(imageNo) {
 
     courseImageCache.set(imageNumber, base64);
 
-    console.log(
-      `[HighwayCodeCourseFlow] Image cached: ${imageNumber}, ` +
-      `MIME: ${mimeType}, Base64 length: ${base64.length}`
-    );
-
     return base64;
   } catch (error) {
     console.error(
