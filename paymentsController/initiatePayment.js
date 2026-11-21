@@ -42,7 +42,7 @@ export async function initiatePayment(businessPhoneNumberId, user, messageId) {
     }
 
     // Create a new payment
-    let payment = paynow.createPayment("Subscription Invoice", "studymatezw@gmail.com");
+    let payment = paynow.createPayment(userState.subscriptionPackage, "studymatezw@gmail.com");
 
     // Add an item to the payment
     payment.add("Zim Provisional Driver's License Whatsapp Assistant Subscription", userState.paymentAmount);
@@ -63,7 +63,7 @@ export async function initiatePayment(businessPhoneNumberId, user, messageId) {
       const pollUrl = response.pollUrl;
 
       // Inform the user and give payment instructions
-      await sendMessageFunction(businessPhoneNumberId, user, messageId, instructions);
+      //await sendMessageFunction(businessPhoneNumberId, user, messageId, instructions);
 
       // Polling function
       const pollStatus = async () => {
@@ -85,7 +85,7 @@ export async function initiatePayment(businessPhoneNumberId, user, messageId) {
                 const buttonId = "downloads";
 
                 await sendFileFunction(businessPhoneNumberId, user, title, caption, filename, messageId, messageText, buttonText, buttonId);
-                messageState = "resources";
+                messageState = "main_menu";
                 setMessageState(user, messageState);
                 delete userState.subscriptionPackage;
               
@@ -100,6 +100,16 @@ export async function initiatePayment(businessPhoneNumberId, user, messageId) {
             
                 await sendFileFunction(businessPhoneNumberId, user, title1, caption1, filename1, messageId);
                 await sendFileFunction(businessPhoneNumberId, user, title2, caption2, filename2, messageId);
+                await addNewUser(user);   
+                await new Promise(resolve => setTimeout(resolve, 650));
+                await sendMainMenuList(businessPhoneNumberId, user, text);
+                messageState = "main_menu";
+                setMessageState(user, messageState);
+
+                delete userState.subscriptionPackage;
+              
+            }else if (userState.subscriptionPackage === "2 Weeks" || userState.subscriptionPackage === "1 Month"){
+                text = "You have successfully subscribed to the *" + userState.subscriptionPackage + "* package of the Zim Provisional Driver's License WhatsApp Assistant. Above are the included Study Resources to get you ahead. Select *'Menu'* below to begin your journey to passing with ease. 🚀";
                 await addNewUser(user);   
                 await new Promise(resolve => setTimeout(resolve, 650));
                 await sendMainMenuList(businessPhoneNumberId, user, text);
