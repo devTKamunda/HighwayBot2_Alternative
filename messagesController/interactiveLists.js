@@ -41,12 +41,12 @@ async function sendMainMenuList(businessPhoneNumberId, user, bodyText = DEFAULT_
                   {
                     id: "menu_road_rules_course",
                     title: "Road Rules Course",
-                    description: "Learn short course lessons on road rules",
+                    description: "Take a short course to 100% master the Road Rules once and for all.",
                   },
                   {
                     id: "menu_pdf_resources",
                     title: "PDF Study Resources",
-                    description: "Download Highway Code, signs & booklets",
+                    description: "Get the Highway Code, Road Signs &/or Questions Bank study resources",
                   },
                 ],
               },
@@ -54,14 +54,14 @@ async function sendMainMenuList(businessPhoneNumberId, user, bodyText = DEFAULT_
                 title: "Tests & Exercises",
                 rows: [
                   {
-                    id: "menu_specialised_tests",
-                    title: "Specialised Tests",
-                    description: "Practice category & topic specific tests",
+                    id: "menu_specialized_tests",
+                    title: "Specialized Tests",
+                    description: "Target your weak spots: practice Road Signs, Diagrams, or Theory fast.",
                   },
                   {
                     id: "menu_timed_test",
                     title: "8 Minute Timed Test",
-                    description: "Simulate real exam conditions with timer",
+                    description: "Take an 8-minute official test simulation to boost speed & accuracy.",
                   },
                   {
                     id: "menu_retry_failed",
@@ -76,7 +76,7 @@ async function sendMainMenuList(businessPhoneNumberId, user, bodyText = DEFAULT_
                   {
                     id: "menu_track_performance",
                     title: "Track Performance",
-                    description: "View progress, scores, and analytics",
+                    description: "Get AI-powered progress tracking, insights, and tips.",
                   },
                 ],
               },
@@ -86,12 +86,12 @@ async function sendMainMenuList(businessPhoneNumberId, user, bodyText = DEFAULT_
                   {
                     id: "menu_check_subscription",
                     title: "Check Subscription",
-                    description: "Buy packages or check subscription status",
+                    description: "Check your subscription status.",
                   },
                   {
                     id: "menu_subscribe",
                     title: "Subscribe",
-                    description: "Buy packages or check subscription status",
+                    description: "Unlock full access: Choose a flexible plan and start preparing today.",
                   },
                 ],
               },
