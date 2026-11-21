@@ -1,4 +1,3 @@
-// questionsService.js
 import pool from "../db.js";
 import dotenv from "dotenv";
 import fs from "node:fs/promises";
@@ -61,6 +60,10 @@ function parseQuestion(rawText) {
   };
 }
 
+function normalizeQuestionType(rawType) {
+  const normalized = String(rawType ?? "").trim().toLowerCase();
+  return normalized || null;
+}
 
 /**
  * Load a Base64 image from assets/road-signs-base64.
@@ -122,7 +125,6 @@ async function loadBase64Image(imageNo) {
 
     imageCache.set(imageNumber, imageSrc);
     return imageSrc;
-
   } catch (error) {
     if (error.code === "ENOENT") {
       console.warn(
@@ -139,7 +141,6 @@ async function loadBase64Image(imageNo) {
     return null;
   }
 }
-
 
 export async function fetch25QuestionsFromDB(
   category,
@@ -164,7 +165,8 @@ export async function fetch25QuestionsFromDB(
         q.question,
         q.answer,
         q.explanation,
-        q.image_no
+        q.image_no,
+        q.question_type
      FROM questions AS q
      WHERE q.category = ?
        AND q.answer IN ('A', 'B', 'C')
@@ -193,13 +195,13 @@ export async function fetch25QuestionsFromDB(
           .trim()
           .toUpperCase(),
         explanation: row.explanation ?? null,
+        question_type: normalizeQuestionType(row.question_type),
         image_no: row.image_no,
         image_src: imageSrc,
       };
     })
   );
 }
-
 
 export async function getFailedQuestionIds(userPhone) {
   const [rows] = await pool.execute(
@@ -239,7 +241,8 @@ export async function fetchQuestionsByIdsFromDB(ids) {
         q.question,
         q.answer,
         q.explanation,
-        q.image_no
+        q.image_no,
+        q.question_type
      FROM questions AS q
      WHERE q.id IN (${placeholders})
        AND q.answer IN ('A', 'B', 'C')
@@ -258,6 +261,7 @@ export async function fetchQuestionsByIdsFromDB(ids) {
         options: parsed.options,
         correct_answer: String(row.answer).trim().toUpperCase(),
         explanation: row.explanation ?? null,
+        question_type: normalizeQuestionType(row.question_type),
         image_no: row.image_no,
         image_src: imageSrc,
       };
@@ -353,7 +357,7 @@ export async function saveResults({
     [user, category]
   );
 
-  const nextTestNumber = testRows[0].last_test_number + 1;                          
+  const nextTestNumber = testRows[0].last_test_number + 1;
 
   // Insert the performance record into the database
   await pool.execute(
