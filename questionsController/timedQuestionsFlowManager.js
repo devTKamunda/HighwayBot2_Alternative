@@ -50,12 +50,19 @@ function getAttemptNumber(screen, prefix) {
   return index === -1 ? NaN : index + 1;
 }
 
+function completionScreenId(attemptNo) {
+  return `COMPLETION_SCREEN_${getAttemptWord(attemptNo)}`;
+}
+
+const TEST_MINUTES = Math.floor(TEST_DURATION_MS / 60000);
+
 const TEST_INSTRUCTIONS =
-  `You have ${Math.floor(TEST_DURATION_MS / 60000)} minutes to answer ` +
-  `${TOTAL_QUESTIONS} questions about road rules. ` +
-  "Choose one answer for every question. " +
-  "Your timer starts when you tap Start Test. " +
-  "When time expires, your answers will be submitted automatically.";
+  `This ${TEST_MINUTES}-minute timed test simulates the real VID Provisional License Test. ` +
+  `You are required to score at least 23/${TOTAL_QUESTIONS} (92%) to pass and get your Provisional Driver's License. ` +
+  `Remember, at the VID you only have one attempt.\n\n` +
+  `You have ${TEST_MINUTES} minutes to answer ${TOTAL_QUESTIONS} questions about road rules.\n\n` +
+  `Your timer starts when you tap Start Test. ` +
+  `When time expires, your answers will be submitted automatically.`;
 
 export async function manageTimedQuestionsFlow(req, res) {
   let aesKeyBuffer;
@@ -69,13 +76,6 @@ export async function manageTimedQuestionsFlow(req, res) {
     initialVectorBuffer = decrypted.initialVectorBuffer;
 
     const { action, data, flow_token, screen } = decryptedBody;
-
-    console.log("Timed Flow request:", {
-      action,
-      screen,
-      data: JSON.stringify(data ?? {}),
-      hasFlowToken: Boolean(flow_token),
-    });
 
     if (action === "ping") {
       res.setHeader("Content-Type", "text/plain");
@@ -144,11 +144,6 @@ export async function manageTimedQuestionsFlow(req, res) {
         0,
         1,
         session
-      );
-      
-      console.log(
-        "Timed Flow response payload:",
-        JSON.stringify(responsePayload, null, 2)
       );
     }
 
@@ -371,8 +366,42 @@ function resetAttempt(session, attemptNo) {
   session.durationMs = TEST_DURATION_MS;
 }
 
+function calculateMarksByType(questions, answers) {
+  const marks = {
+    road_sign: 0,
+    traffic_intersection: 0,
+    theory: 0,
+  };
+
+  for (const answer of answers) {
+    const question = questions.find(
+      (item) => String(item.id) === String(answer.questionId)
+    );
+
+    if (!question) continue;
+
+    const isCorrect =
+      String(answer.selected).toUpperCase() ===
+      String(question.correct_answer).toUpperCase();
+
+    if (!isCorrect) continue;
+
+    const type = String(question.question_type || "").trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(marks, type)) {
+      marks[type] += 1;
+    }
+  }
+
+  return marks;
+}
+
 async function finishAttempt(session, { timedOut = false } = {}) {
   const score = calculateTestScore(
+    session.questions,
+    session.answers
+  );
+
+  const topicMarks = calculateMarksByType(
     session.questions,
     session.answers
   );
@@ -390,6 +419,7 @@ async function finishAttempt(session, { timedOut = false } = {}) {
     answered: session.answers.length,
     correct: score.correct,
     percentage: score.percentage,
+    topicMarks,
     durationMs,
     answers: session.answers.map((answer) => ({ ...answer })),
     finishedAt: new Date().toISOString(),
@@ -397,16 +427,6 @@ async function finishAttempt(session, { timedOut = false } = {}) {
 
   session.attemptResults.push(attemptResult);
 
-  console.log("Timed test attempt completed:", {
-    attemptNo: attemptResult.attemptNo,
-    status: attemptResult.status,
-    timedOut: attemptResult.timedOut,
-    answered: attemptResult.answered,
-    correct: attemptResult.correct,
-    percentage: attemptResult.percentage,
-  });
-
-  // Save the result using the requested saveResults logic
   if (session.userPhone) {
     try {
       await saveResults({
@@ -415,9 +435,9 @@ async function finishAttempt(session, { timedOut = false } = {}) {
         status: timedOut ? "incomplete" : "complete",
         no_correct_answers: score.correct,
         no_questions_taken: session.questions.length,
-        road_sign_qtn_mark: null,
-        traffic_intersection_qtn_mark: null,
-        theory_qtn_mark: null,
+        road_sign_qtn_mark: topicMarks.road_sign,
+        traffic_intersection_qtn_mark: topicMarks.traffic_intersection,
+        theory_qtn_mark: topicMarks.theory,
         time_taken: durationMs,
       });
     } catch (dbError) {
@@ -444,10 +464,6 @@ async function finishAttempt(session, { timedOut = false } = {}) {
           : `🏁 You've completed all ${MAX_ATTEMPTS} attempts.`,
     },
   };
-}
-
-function completionScreenId(attemptNo) {
-  return `COMPLETION_SCREEN_${getAttemptWord(attemptNo)}`;
 }
 
 // --------------------------------------------------
