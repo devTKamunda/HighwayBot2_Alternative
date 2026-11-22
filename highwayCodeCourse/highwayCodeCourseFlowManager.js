@@ -1,10 +1,10 @@
-
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import pool from "../db.js";
+import { userStatesMap } from "../userStateManager.js";
 
 dotenv.config();
 
@@ -15,8 +15,15 @@ const PRIVATE_KEY = await fs.readFile(
 );
 const ASSET_DIR = path.resolve(__dirname, "../assets/course-images-base64");
 
+const TRIAL_LOCKED_SCREEN = "TRIAL_LOCKED";
+
+const TRIAL_LOCKED_TITLE = "Subscription Required";
+const TRIAL_LOCKED_MESSAGE =
+  "You have to be subscribed to access the full course. " +
+  "To subscribe, scroll down the menu and select Subscribe.";
+
 const LESSONS = [
-  { title: "highway_code", screen: "WELCOME", heading: "Welcome to the Highway Code!" },
+  { title: "highway_code", screen: "WELCOME", heading: "Welcome to the Highway Code Ultimate Course!" },
   { title: "introduction", screen: "INTRODUCTION", heading: "1. Introduction" },
   { title: "test_mistakes", screen: "TEST_MISTAKES", heading: "2. Test's Common Mistakes" },
   { title: "five_rules", screen: "FIVE_RULES", heading: "3. Rules for Solving Car Diagrams" },
@@ -25,7 +32,11 @@ const LESSONS = [
   { title: "summary", screen: "SUMMARY", heading: "6. Points to Remember" },
 ];
 
-const SCREEN_IDS = [...LESSONS.map(x => x.screen), "FINAL_OPTIONS"];
+const SCREEN_IDS = [
+  ...LESSONS.map(x => x.screen),
+  "FINAL_OPTIONS",
+  TRIAL_LOCKED_SCREEN,
+];
 
 function decryptRequest(body) {
   const {
@@ -176,7 +187,6 @@ async function loadImage(imageNo) {
   }
 }
 
-
 async function getLesson(screenId) {
   const lesson = LESSONS.find(item => item.screen === screenId);
 
@@ -196,18 +206,18 @@ async function getLesson(screenId) {
   const row = rows[0];
   const imageSrc = await loadImage(row.image_no);
 
-    return {
+  return {
     lesson_title: lesson.heading,
     lesson_text: String(row.info ?? ""),
     image_src: imageSrc || "",
     has_image: Boolean(imageSrc),
-    };
+  };
 }
 
 function getTargetScreen(currentScreen, userAction) {
   const index = SCREEN_IDS.indexOf(currentScreen);
 
-  if (index < 0 || currentScreen === "FINAL_OPTIONS") {
+  if (index < 0 || currentScreen === "FINAL_OPTIONS" || currentScreen === TRIAL_LOCKED_SCREEN) {
     throw new Error(`Invalid current screen: ${currentScreen}`);
   }
 
@@ -242,6 +252,7 @@ export async function manageHighwayCodeCourseFlow(req, res) {
     }
 
     if (body.action === "data_exchange") {
+      const user = String(body.flow_token ?? "").trim();
       const userAction = String(
         body.data?.user_action ?? "NEXT"
       ).toUpperCase();
@@ -251,6 +262,24 @@ export async function manageHighwayCodeCourseFlow(req, res) {
       }
 
       const target = getTargetScreen(body.screen, userAction);
+
+      const userPackage = user
+        ? String(userStatesMap.get(user)?.package ?? "").trim().toLowerCase()
+        : "";
+
+      if (
+        body.screen === "INTRODUCTION" &&
+        target === "TEST_MISTAKES" &&
+        userPackage === "trial"
+      ) {
+        return sendEncrypted(res, {
+          screen: TRIAL_LOCKED_SCREEN,
+          data: {
+            lock_title: TRIAL_LOCKED_TITLE,
+            lock_message: TRIAL_LOCKED_MESSAGE,
+          }
+        }, aesKey, iv);
+      }
 
       if (target === "FINAL_OPTIONS") {
         return sendEncrypted(res, {
