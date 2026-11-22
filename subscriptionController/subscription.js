@@ -1,32 +1,11 @@
 import connection from "../db.js";
-import {sendOneMessageButtonFunction, sendTwoMessageButtonFunction, sendThreeMessageButtonFunction} from '../messagesController/sendButtons.js';
-import {markAsRead} from '../messagesController/markAsRead.js';
 import {sendMessageFunction} from '../messagesController/sendMessage.js';
 import {
   initializeUserState,
   userStatesMap,
-  setMessageState,
-  setTestCompletionState,
-  setCategory,
-  setAnswersCount,
-  setQuestionsLimit,
-  setCorrectAnswer,
-  setQuestionType,
-  setExplanation,
-  setQuestionNumber,
-  setIncrementedQuestionNumber,
-  incrementQuestionNumber,
-  setTimeLimit,
-  setTimeTaken,
-  setTimeTakenSeconds,
   setExpiration,
-  setPaymentOption,
-  setPaymentNumber,
-  setPaymentAmount,
-  setPaymentCurrency,
   setSubscriptionPackage,
-  setAskedQuestions,
-  resetUserData
+  setPackage
 } from '../userStateManager.js';
 
 import dotenv from "dotenv";
@@ -45,9 +24,24 @@ const getPaymentNumber = (user) => getUserState(user).paymentNumber;
 const getPaymentAmount = (user) => getUserState(user).paymentAmount;
 const getPaymentCurrency = (user) => getUserState(user).paymentCurrency;
 
+async function checkPermission(businessPhoneNumberId, user, messageId) {
+  const expiration = userStatesMap.get(user)?.expiration;
+
+  if (expiration) {
+    const now = new Date();
+    const expDate = new Date(expiration);
+
+    if (!Number.isNaN(expDate.getTime())) {
+      return expDate > now;
+    }
+  }
+
+  return await checkUserSubscription(user);
+}
+
 // Check subscription
 export async function checkSubscriptionAndHandleMessage(businessPhoneNumberId, user, messageId) {
-  const subscriptionStatus = await checkUserSubscription(user);
+  const subscriptionStatus = await checkPermission(businessPhoneNumberId, user, messageId);
   let text;
 
   if (subscriptionStatus === 'not in database') {
@@ -64,7 +58,7 @@ export async function checkSubscriptionAndHandleMessage(businessPhoneNumberId, u
 
     *No more failing!* We’ve got the secrets to help you pass fast and with confidence. Ready to begin your journey to becoming a fully licensed driver? Let’s go! 🚀🔥
     
-    You have *${process.env.TRIAL_LIMIT} HOURS FREE* access to the *Zim Provisional Driver's License WhatsApp Assistant*. Prepare to *ACE your VID Provisional Driver’s License Test!* 🚀\n\nStart now and get ahead! \n\nTo have unlimited access to the *Zim Provisional Driver's License WhatsApp Assistant*, select *'Subscription'* to subscribe.`; 
+    You have *${process.env.TRIAL_LIMIT} HOURS FREE* access to the *Zim Provisional Driver's License WhatsApp Assistant*. Prepare to *ACE your VID Provisional Driver’s License Test!* 🚀\n\nStart now and get ahead! \n\nTo have unlimited access to the *Zim Provisional Driver's License WhatsApp Assistant*, select *'Subscribe'* to subscribe.`; 
 
    
     setSubscriptionPackage(user, "Trial");
@@ -78,7 +72,7 @@ export async function checkSubscriptionAndHandleMessage(businessPhoneNumberId, u
   
   if (subscriptionStatus === false) {
     // Subscription expired
-    text = "🚫 Your subscription has expired. To continue using the assistant, please *renew your subscription*.\n\nSelect 'Subscription' then 'Subscribe' to view available packages and subscribe or 'Menu' for the main menu.";
+    text = "🚫 Your subscription has expired. To continue using the assistant, please *renew your subscription*.\n\nScroll down the menu and select 'Subscribe' to view available packages and subscribe or 'Menu' for the main menu.";
     
     await sendMainMenuList(businessPhoneNumberId, user, text);
     
@@ -86,9 +80,9 @@ export async function checkSubscriptionAndHandleMessage(businessPhoneNumberId, u
   } 
   
   if (!userStatesMap.get(user)?.messageState) {
-  // If subscriptionStatus is true (active)
-  await sendMainMenuList(businessPhoneNumberId, user, text);
-}
+    // If subscriptionStatus is true (active)
+    await sendMainMenuList(businessPhoneNumberId, user);
+  }
   return true; // ✅ Active users are allowed
 }
 
@@ -97,7 +91,7 @@ export async function checkUserSubscription(user) {
   const now = new Date();
 
   const [rows] = await connection.execute(
-    'SELECT expiration_date FROM users WHERE phone = ?',
+    'SELECT package, expiration_date FROM users WHERE phone = ?',
     [user]
   );
 
@@ -107,9 +101,13 @@ export async function checkUserSubscription(user) {
   }
 
   const expirationDate = new Date(rows[0].expiration_date);
+  const pkg = rows[0].package;
 
   // Save to in-memory cache (optional optimization)
   setExpiration(user, expirationDate);
+  setPackage(user, pkg)
+  console.log("Set expiration date to:", expirationDate);
+  console.log("Set package to:", pkg);
 
   // Check if subscription is still valid
   return expirationDate > now;
@@ -188,7 +186,7 @@ export async function addNewUser(user) {
 
     // Add duration based on package
     if (packageType === "Trial") {
-      expirationDate = now < targetDate ? targetDate : new Date(now.getTime() + 5 * 60 * 60 * 1000); // 12 hours from now
+      expirationDate = now < targetDate ? targetDate : new Date(now.getTime() + process.env.TRIAL_LIMIT * 60 * 60 * 1000); // 12 hours from now
     } else if (packageType === "2 Weeks") {
       expirationDate.setDate(expirationDate.getDate() + 14);
     } else if (packageType === "1 Month") {
@@ -218,6 +216,7 @@ export async function addNewUser(user) {
     }
 
     setExpiration(user, expirationDate);
+    setPackage(user, packageType);
     console.log(`User ${user} subscribed to ${packageType}, expiring on ${formattedExpiration}`);
 
   } catch (error) {
