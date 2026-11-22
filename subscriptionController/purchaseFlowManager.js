@@ -383,11 +383,6 @@ function saveProductToState(userState, productData) {
   userState.paymentAmount = Number(productData.price);
   userState.paymentCurrency = productData.price_currency;
   userState.paymentOption = "EcoCash";
-
-  if (productData.product_type === "subscription") {
-    userState.subscriptionPackage = productData.product_id;
-  }
-
 }
 
 function getSavedOrSubmittedChoice(data, userState) {
@@ -737,10 +732,6 @@ export async function managePurchaseFlow(req, res) {
       setPaymentAmount(user, Number(productData.price));
       setPaymentCurrency(user, productData.price_currency);
       setSubscriptionPackage(user, productData.product_name);
-
-      if (productData.product_type === "subscription") {
-        userState.subscriptionPackage = productData.product_id;
-      }
 
       const paymentDisclosureText =
         productData.product_type === "subscription"
