@@ -18,7 +18,7 @@ export async function markAsRead(businessPhoneNumberId, messageId) {
       },
     });
     
-    console.log("[WhatsApp] Message successfully marked as read:", messageId);
+    //console.log("[WhatsApp] Message successfully marked as read:", messageId);
     return response.data;
   } catch (error) {
     // Log the detailed Meta API error response if available
