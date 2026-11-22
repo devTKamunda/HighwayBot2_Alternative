@@ -27,6 +27,7 @@ export const initializeUserState = (user) => {
       timeTakenSeconds: 0,
       timerId: null,
       expiration: null,
+      package: null,
       paymentOption: null,
       paymentNumber: null,
       paymentAmount: null,
@@ -179,6 +180,13 @@ export const setExpiration = (user, expiration) => {
   initializeUserState(user);
   userStatesMap.get(user).expiration = expiration;
   console.log(`Expiration set to: ${expiration}`);
+};
+
+// Function to set package that user is on
+export const setPackage = (user, pkg) => {
+  initializeUserState(user);
+  userStatesMap.get(user).package = pkg;
+  console.log(`Package set to: ${pkg}`);
 };
 
 // Function to set the payment option
