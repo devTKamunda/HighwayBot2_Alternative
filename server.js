@@ -173,6 +173,7 @@ app.post("/webhook", async (req, res) => {
           
           }else if (message?.type === "interactive" && message?.interactive?.type === "nfm_reply") {
           const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
+          console.log("[Webhook] NFM Reply received:", responseJson);
           const user = message.from; // Ensure user phone is defined from the message sender
           const messageId = message.id;
 
@@ -193,20 +194,20 @@ app.post("/webhook", async (req, res) => {
 
             messageState = "main_menu";
             setMessageState(user, messageState);
-          }
 
-          // ✅ Handle tests action flow
-          else if (responseJson.action === "tests") {
+          }else if (responseJson.action === "tests") {
             await markAsRead(businessPhoneNumberId, messageId);
             await sendPracticeTestFlow(user);
-
-            const text = "You have selected the practice tests menu. Choose an option below to begin:";
-            // Add your function to send the tests menu or list here
-            // await sendTestsMenuFunction(businessPhoneNumberId, user, messageId, text);
-
             messageState = "main_menu"; 
             setMessageState(user, messageState);
+            
+          }else{
+            await markAsRead(businessPhoneNumberId, messageId);
+            await sendMainMenuList(businessPhoneNumberId, user);
+            messageState = "main_menu";
+            setMessageState(user, messageState);
           }
+
         }else if (user && optionReplyId) {
             // Check if the user is subscribed or on a trial
             const isAllowed = await checkSubscriptionAndHandleMessage(businessPhoneNumberId, user, messageId);
