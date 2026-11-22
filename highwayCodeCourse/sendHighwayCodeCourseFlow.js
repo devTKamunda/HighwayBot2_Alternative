@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import dotenv from "dotenv";
 
@@ -28,13 +27,13 @@ export async function sendHighwayCodeCourseFlow(user) {
           type: "flow",
           header: {
             type: "text",
-            text: "Highway Code Course"
+            text: "Highway Code Course Ultimate Course"
           },
           body: {
             text:
-              "📘 *Highway Code Course*\n\n" +
-              "Study the lessons at your own pace. " +
-              "Your lesson content is loaded from our course database.\n\n" +
+              "📘 *Highway Code Course Ultimate Course*\n\n" +
+              "This comprehensive short course covers the essential principles for safe driving on the road.\n\n" +
+              "After this course, you will be able to answer any Traffic intersection Diagram question confidently and accurately and well set you up for the official VID Provisional License exam.\n\n" +
               "Tap below to begin."
           },
           footer: {
@@ -44,6 +43,7 @@ export async function sendHighwayCodeCourseFlow(user) {
             name: "flow",
             parameters: {
               flow_message_version: "3",
+              flow_token: String(user),
               flow_id: flowId,
               flow_cta: "Start Course",
               flow_action: "data_exchange"
