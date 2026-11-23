@@ -235,7 +235,7 @@ function buildProductOptions(mode) {
 
       const optionItem = {
         id: `${product.id}__${currency}`,
-        title: `${product.name}: ${product.detail} — ${money(currency, price)}`,
+        title: `${product.name}: ${money(currency, price)} — ${product.detail}`,
       };
 
       if (currency === "USD") {
