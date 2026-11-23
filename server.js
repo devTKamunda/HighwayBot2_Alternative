@@ -11,7 +11,7 @@ import {sendIrideCode, sendDriftOTP, sendMessageFunction} from './messagesContro
 import {markAsRead} from './messagesController/markAsRead.js';
 import {sendMainMenuList} from './messagesController/interactiveLists.js';
 import {analyzeUserPerformance} from './performanceController/analyzePerformance.js';
-import {checkSubscriptionAndHandleMessage, checkSubscriptionFunction} from './subscriptionController/subscription.js';
+import {checkSubscriptionAndHandleMessage, checkSubscriptionFunction, checkUserSubscription} from './subscriptionController/subscription.js';
 import './appUtils/dailyTasks.js';
 import './appUtils/refreshFileMediaIds.js';
 import { refreshFileMediaIds } from './appUtils/refreshFileMediaIds.js';
@@ -265,6 +265,8 @@ app.post("/webhook", async (req, res) => {
             }
         }else{
           await markAsRead(businessPhoneNumberId, messageId);
+          //Check users Sub in database and update local storage
+          await checkUserSubscription(businessPhoneNumberId, user, messageId); // This checks users subscription from database and updates local storage
           await sendMainMenuList(businessPhoneNumberId, user);
           messageState = "main_menu";
           setMessageState(user, messageState);
